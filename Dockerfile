@@ -8,7 +8,7 @@ COPY package*.json ./
 # Install dependencies
 RUN npm install
 
-# Copy the bot file
+# Copy bot file from root
 COPY index.js ./
 
 # Run the bot
