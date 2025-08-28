@@ -64,9 +64,16 @@ client.on("messageCreate", async (message) => {
         }),
       });
 
-      // You can choose to handle the response from n8n here, if needed.
-      // For example, if n8n returns a JSON with the response text, you can read it.
+      // Handle the JSON response from n8n.
       const n8nResponseData = await response.json();
+
+      // Check if the response is an array and the first item has an 'output' property.
+      // This is the correct way to handle your n8n output.
+      if (Array.isArray(n8nResponseData) && n8nResponseData.length > 0 && n8nResponseData[0].output) {
+        return message.reply(n8nResponseData[0].output);
+      }
+      
+      // Fallback for a single object response, if your n8n workflow changes
       if (n8nResponseData.responseMessage) {
         return message.reply(n8nResponseData.responseMessage);
       }
