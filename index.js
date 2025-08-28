@@ -50,4 +50,16 @@ client.on('messageCreate', async (message) => {
       content: message.content
     });
 
-    let reply = res
+    let reply = response.data?.reply || "🤔 I don’t know what to say...";
+    if (reply.length > 2000) reply = reply.slice(0, 1997) + "...";
+
+    await message.channel.send(reply);
+
+  } catch (err) {
+    console.error("Chat error:", err.message);
+    await message.channel.send("⚠️ Something went wrong while talking...");
+  }
+});
+
+console.log("🚀 Starting bot...");
+client.login(process.env.DISCORD_TOKEN);
