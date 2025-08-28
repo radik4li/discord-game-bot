@@ -67,16 +67,25 @@ client.on("messageCreate", async (message) => {
       // Handle the JSON response from n8n.
       const n8nResponseData = await response.json();
 
-      // Check if the response is an array and the first item has an 'output' property.
-      // This is the correct way to handle your n8n output.
-      if (Array.isArray(n8nResponseData) && n8nResponseData.length > 0 && n8nResponseData[0].output) {
-        return message.reply(n8nResponseData[0].output);
+      // Check if the response is a standard Discord webhook object
+      // This is now more robust to prevent silent failures
+      if (typeof n8nResponseData === 'object' && ('content' in n8nResponseData || 'embeds' in n8nResponseData)) {
+        // Send the complete webhook payload
+        return message.channel.send(n8nResponseData);
       }
-      
-      // Fallback for a single object response, if your n8n workflow changes
-      if (n8nResponseData.responseMessage) {
-        return message.reply(n8nResponseData.responseMessage);
+
+      // If the response is an array from n8n (for simple text)
+      if (Array.isArray(n8nResponseData) && n8nResponseData.length > 0) {
+        const outputObject = n8nResponseData.find(item => 'output' in item);
+
+        if (outputObject && outputObject.output) {
+          return message.reply(outputObject.output);
+        }
       }
+
+      // Fallback if the response is malformed or empty
+      console.log("n8n webhook returned a malformed or empty response.");
+      return message.reply("Oops, the webhook sent an invalid response. Check your n8n workflow.");
 
     } catch (error) {
       console.error("Error sending message to n8n webhook:", error);
