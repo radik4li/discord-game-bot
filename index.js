@@ -83,7 +83,11 @@ async function startTrivia(message) {
     if (process.env.N8N_WEBHOOK_URL) {
         try {
             const response = await axios.post(process.env.N8N_WEBHOOK_URL, {
-                action: 'get_trivia'
+                action: 'get_trivia',
+                channel_id: message.channel.id,
+                user_id: message.author.id,
+                username: message.author.username,
+                message_id: message.id
             });
             triviaData = response.data;
             console.log('Got trivia from n8n');
