@@ -18,20 +18,25 @@ client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
   try {
-    // Send user message to n8n webhook
+    // Send user input to your n8n webhook
     const response = await axios.post(process.env.N8N_WEBHOOK_URL, {
       action: "chat",
       user: message.author.username,
       content: message.content
     });
 
-    const reply = response.data?.reply || "🤔 I don’t know what to say...";
+    let reply = response.data?.reply || "🤔 I don’t know what to say...";
 
-    await message.reply(reply);
+    // Discord messages can only be max ~2000 characters
+    if (reply.length > 2000) {
+      reply = reply.slice(0, 1997) + "...";
+    }
+
+    await message.channel.send(reply);
 
   } catch (err) {
     console.error("Chat error:", err.message);
-    await message.reply("⚠️ Something went wrong talking to me...");
+    await message.channel.send("⚠️ Something went wrong while talking...");
   }
 });
 
