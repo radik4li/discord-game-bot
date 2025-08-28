@@ -1,16 +1,10 @@
-// Import the necessary Discord.js and OpenAI classes
+// Import the necessary Discord.js classes
 const { Client, GatewayIntentBits } = require('discord.js');
-const OpenAI = require('openai');
 
 // Import the 'dotenv' library to handle environment variables
-// This allows you to securely store your bot token and API key
-// Make sure you have a .env file with DISCORD_TOKEN and OPENAI_API_KEY
 require('dotenv').config();
 
 // Create a new Discord client instance with the required intents.
-// Intents define what events your bot can listen to.
-// GatewayIntentBits.Guilds and GatewayIntentBits.GuildMessages are required for message events.
-// GatewayIntentBits.MessageContent is required to read the content of messages.
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -19,10 +13,9 @@ const client = new Client({
   ],
 });
 
-// Initialize the OpenAI client using your API key from the environment variables
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// IMPORTANT: Replace this placeholder with your actual n8n webhook URL.
+// This is the URL that your Discord bot will send messages to.
+const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL;
 
 // A variable to track the bot's active state
 let botActive = false;
@@ -42,7 +35,6 @@ client.on("messageCreate", async (message) => {
   // Command to start the bot
   if (message.content === "!startbot") {
     botActive = true;
-    // Use .reply() for a direct response to the message
     return message.reply("✅ Bot is now active!");
   }
 
@@ -54,32 +46,37 @@ client.on("messageCreate", async (message) => {
 
   // --- Bot Response Logic ---
 
-  // If the bot is active, call the OpenAI API
+  // If the bot is active, send the message to the n8n webhook
   if (botActive) {
     try {
-      // Call OpenAI with the user's message
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [{ role: "user", content: message.content }],
+      // Send a POST request to the n8n webhook URL.
+      // The request body contains the message content and other useful data.
+      const response = await fetch(n8nWebhookUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: message.content,
+          author: message.author.tag,
+          channelId: message.channel.id,
+          messageId: message.id,
+        }),
       });
 
-      // Send the response back to the channel.
-      // The `?` is optional chaining to prevent errors if the path is not found.
-      const botReply = response.choices?.[0]?.message?.content;
-      if (botReply) {
-        return message.reply(botReply);
-      } else {
-        console.error("OpenAI response was empty.");
-        return message.reply("Oops, something went wrong with the AI response.");
+      // You can choose to handle the response from n8n here, if needed.
+      // For example, if n8n returns a JSON with the response text, you can read it.
+      const n8nResponseData = await response.json();
+      if (n8nResponseData.responseMessage) {
+        return message.reply(n8nResponseData.responseMessage);
       }
 
     } catch (error) {
-      console.error("Error calling OpenAI API:", error);
-      return message.reply("An error occurred while trying to get a response from the AI.");
+      console.error("Error sending message to n8n webhook:", error);
+      return message.reply("An error occurred while trying to send the message to the workflow.");
     }
   }
 });
 
 // Log the bot into Discord using the token from your .env file
 client.login(process.env.DISCORD_TOKEN);
-
